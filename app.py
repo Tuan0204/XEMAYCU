@@ -2,17 +2,24 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from model_utils import (
-    build_features,
-    classify_price,
-    get_options,
-    load_model_bundle,
-    predict_price,
-)
-
+# ⚠️ LỆNH NÀY BẮT BUỘC PHẢI ĐẶT ĐẦU TIÊN TRƯỚC KHI IMPORT MODEL UTILS
 st.set_page_config(
     page_title="Motorbike Price & Anomaly", page_icon="🏍️", layout="wide"
 )
+
+try:
+    from model_utils import (
+        SEGMENT_DUNG_TICH_GOI_Y,
+        build_features,
+        classify_price,
+        get_dong_options,
+        get_hang_options_for_segment,
+        get_options,
+        load_model_bundle,
+        predict_price,
+    )
+except Exception as e:
+    st.error(f"Lỗi import model_utils: {e}")
 
 ACCENT = "#E85D25"
 
@@ -63,7 +70,6 @@ COLUMN_MAPPING = {
 
 
 def clean_price(val):
-    """Làm sạch tiền tệ dạng '16.000.000 đ' hoặc '16,000,000' thành dạng số float 16000000.0"""
     if pd.isna(val):
         return 0.0
     if isinstance(val, (int, float)):
@@ -89,29 +95,12 @@ def clean_price(val):
 st.markdown(
     f"""
 <style>
-    section[data-testid="stSidebar"] {{
-        background-color: #f0f2f6;
-    }}
-    .stButton > button {{
-        background-color: {ACCENT};
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-    }}
-    .stButton > button:hover {{
-        background-color: #c44a1a;
-        color: white;
-    }}
+    section[data-testid="stSidebar"] {{ background-color: #f0f2f6; }}
+    .stButton > button {{ background-color: {ACCENT}; color: white; border: none; border-radius: 8px; font-weight: 600; }}
+    .stButton > button:hover {{ background-color: #c44a1a; color: white; }}
     div[data-baseweb="tab-highlight"] {{ background-color: {ACCENT} !important; }}
     button[data-baseweb="tab"][aria-selected="true"] {{ color: {ACCENT} !important; }}
-    .price-result {{
-        border: 1px solid rgba(232,93,37,0.35);
-        background: #fff6f0;
-        border-radius: 10px;
-        padding: 18px 20px;
-        margin-top: 8px;
-    }}
+    .price-result {{ border: 1px solid rgba(232,93,37,0.35); background: #fff6f0; border-radius: 10px; padding: 18px 20px; margin-top: 8px; }}
     .price-result .pr-label {{ font-size: 13px; color: rgb(120,122,132); margin: 0; }}
     .price-result .pr-value {{ font-size: 1.9rem; font-weight: 700; color: {ACCENT}; margin: 4px 0 8px; }}
     .price-result .pr-note {{ font-size: 12px; color: rgb(120,122,132); margin: 0; }}
@@ -139,6 +128,114 @@ try:
 except Exception as e:
     MODEL_OK = False
     MODEL_ERROR = str(e)
+
+
+# ============================================================
+# HÀM HỖ TRỢ DÙNG CHUNG CHO FORM NHẬP THÔNG TIN XE
+# (ĐÃ CHUYỂN LÊN ĐÂY ĐỂ KHÔNG ĐÁNH TAN CHUỖI IF/ELIF)
+# ============================================================
+def render_vehicle_input_form(key_prefix: str):
+    segment = st.radio(
+        "Phân khúc xe",
+        ["Xe phổ thông", "Xe cổ điển", "Phân khối lớn"],
+        horizontal=True,
+        key=f"{key_prefix}_segment",
+    )
+    if segment == "Phân khối lớn":
+        st.caption(
+            "⚠️ Xe phân khối lớn có ít dữ liệu huấn luyện hơn — giá dự đoán chỉ mang tính tham khảo."
+        )
+    elif segment == "Xe cổ điển":
+        st.caption("Gồm các dòng xe cổ như Detech 67, Cub, Dream, Win, Chaly...")
+
+    hang_options = get_hang_options_for_segment(bundle, segment, OPTS)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        hang = st.selectbox("Hãng xe *", hang_options, key=f"{key_prefix}_hang")
+    with col2:
+        dong_options = get_dong_options(bundle, hang, OPTS)
+        dong = st.selectbox("Dòng xe *", dong_options, key=f"{key_prefix}_dong")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        loai_xe = st.selectbox(
+            "Loại xe *", OPTS["Loại xe"], key=f"{key_prefix}_loai"
+        )
+    with col4:
+        xuat_xu = st.selectbox(
+            "Xuất xứ", OPTS["Xuat_xu_clean"], key=f"{key_prefix}_xuatxu"
+        )
+
+    col5, col6 = st.columns(2)
+    with col5:
+        dung_tich_unknown = st.checkbox(
+            "Không rõ dung tích xe", key=f"{key_prefix}_dtkr"
+        )
+        dung_tich_default = SEGMENT_DUNG_TICH_GOI_Y.get(
+            segment, OPTS["dung_tich_labels"][0]
+        )
+        dt_idx = (
+            OPTS["dung_tich_labels"].index(dung_tich_default)
+            if dung_tich_default in OPTS["dung_tich_labels"]
+            else 0
+        )
+        dung_tich_label = st.selectbox(
+            "Dung tích xe",
+            OPTS["dung_tich_labels"],
+            index=dt_idx,
+            disabled=dung_tich_unknown,
+            key=f"{key_prefix}_dt",
+        )
+    with col6:
+        reg_before_1980 = st.checkbox(
+            "Xe đăng ký trước năm 1980", key=f"{key_prefix}_reg1980"
+        )
+        nam_dang_ky = st.number_input(
+            "Năm đăng ký *",
+            min_value=1980,
+            max_value=2026,
+            value=2018,
+            disabled=reg_before_1980,
+            key=f"{key_prefix}_nam",
+        )
+
+    col7, col8 = st.columns(2)
+    with col7:
+        km_unknown = st.checkbox(
+            "Không rõ số Km đã đi", key=f"{key_prefix}_kmkr"
+        )
+        km = st.number_input(
+            "Số Km đã đi *",
+            min_value=0,
+            max_value=300000,
+            value=26000,
+            step=1000,
+            disabled=km_unknown,
+            key=f"{key_prefix}_km",
+        )
+    with col8:
+        khu_vuc = st.selectbox(
+            "Khu vực giao dịch (Quận/Huyện)",
+            [f"Quận {i}" for i in range(1, 13)]
+            + ["Bình Thạnh", "Gò Vấp", "Tân Bình", "Thủ Đức"],
+            key=f"{key_prefix}_khuvuc",
+        )
+
+    return dict(
+        hang=hang,
+        dong=dong,
+        loai_xe=loai_xe,
+        xuat_xu=xuat_xu,
+        dung_tich_label=dung_tich_label,
+        dung_tich_unknown=dung_tich_unknown,
+        reg_before_1980=reg_before_1980,
+        nam_dang_ky=int(nam_dang_ky),
+        km=km,
+        km_unknown=km_unknown,
+        khu_vuc=khu_vuc,
+    )
+
 
 # ============================================================
 # SIDEBAR
@@ -225,205 +322,133 @@ elif page == "Phân công nhóm":
     st.caption("Liên hệ: nhom.dl07k314@example.com")
 
 # ============================================================
-# NGƯỜI BÁN XE
+# NGƯỜI BÁN XE (Định giá xe lẻ)
 # ============================================================
 elif page == "Người bán xe":
     st.title("Định giá xe máy của bạn")
     st.caption(
-        "Chọn phân khúc xe, nhập thông tin để nhận giá tham khảo từ model XGBoost."
+        "Chọn phân khúc xe, nhập thông tin chi tiết để nhận giá tham khảo từ model XGBoost."
     )
 
     if not MODEL_OK:
         st.error(f"Không load được model: {MODEL_ERROR}")
         st.stop()
 
-    from model_utils import (
-        SEGMENT_DUNG_TICH_GOI_Y,
-        get_dong_options,
-        get_hang_options_for_segment,
-    )
+    vals = render_vehicle_input_form("seller")
 
-    def _seller_inputs(key_prefix: str):
-        segment = st.radio(
-            "Phân khúc xe",
-            ["Xe phổ thông", "Xe cổ điển", "Phân khối lớn"],
-            horizontal=True,
-            key=f"{key_prefix}_segment",
+    if st.button("💰 Định giá xe ngay", key="btn_predict_single"):
+        feats = build_features(
+            bundle, **{k: v for k, v in vals.items() if k != "khu_vuc"}
         )
-        if segment == "Phân khối lớn":
-            st.caption(
-                "⚠️ Xe phân khối lớn có ít dữ liệu huấn luyện hơn — giá dự đoán chỉ mang tính tham khảo."
-            )
-        elif segment == "Xe cổ điển":
-            st.caption(
-                "Gồm các dòng xe cổ như Detech 67, Cub, Dream, Win, Chaly..."
-            )
-
-        hang_options = get_hang_options_for_segment(bundle, segment, OPTS)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            hang = st.selectbox(
-                "Hãng xe *", hang_options, key=f"{key_prefix}_hang"
-            )
-        with col2:
-            dong_options = get_dong_options(bundle, hang, OPTS)
-            dong = st.selectbox(
-                "Dòng xe *", dong_options, key=f"{key_prefix}_dong"
-            )
-
-        col3, col4 = st.columns(2)
-        with col3:
-            loai_xe = st.selectbox(
-                "Loại xe *", OPTS["Loại xe"], key=f"{key_prefix}_loai"
-            )
-        with col4:
-            xuat_xu = st.selectbox(
-                "Xuất xứ", OPTS["Xuat_xu_clean"], key=f"{key_prefix}_xuatxu"
-            )
-
-        col5, col6 = st.columns(2)
-        with col5:
-            dung_tich_unknown = st.checkbox(
-                "Không rõ dung tích xe", key=f"{key_prefix}_dtkr"
-            )
-            dung_tich_default = SEGMENT_DUNG_TICH_GOI_Y.get(
-                segment, OPTS["dung_tich_labels"][0]
-            )
-            dt_idx = (
-                OPTS["dung_tich_labels"].index(dung_tich_default)
-                if dung_tich_default in OPTS["dung_tich_labels"]
-                else 0
-            )
-            dung_tich_label = st.selectbox(
-                "Dung tích xe",
-                OPTS["dung_tich_labels"],
-                index=dt_idx,
-                disabled=dung_tich_unknown,
-                key=f"{key_prefix}_dt",
-            )
-        with col6:
-            reg_before_1980 = st.checkbox(
-                "Xe đăng ký trước năm 1980", key=f"{key_prefix}_reg1980"
-            )
-            nam_dang_ky = st.number_input(
-                "Năm đăng ký *",
-                min_value=1980,
-                max_value=2026,
-                value=2018,
-                disabled=reg_before_1980,
-                key=f"{key_prefix}_nam",
-            )
-
-        col7, col8 = st.columns(2)
-        with col7:
-            km_unknown = st.checkbox(
-                "Không rõ số Km đã đi", key=f"{key_prefix}_kmkr"
-            )
-            km = st.number_input(
-                "Số Km đã đi *",
-                min_value=0,
-                max_value=300000,
-                value=26000,
-                step=1000,
-                disabled=km_unknown,
-                key=f"{key_prefix}_km",
-            )
-        with col8:
-            khu_vuc = st.selectbox(
-                "Khu vực giao dịch (Quận/Huyện)",
-                [f"Quận {i}" for i in range(1, 13)]
-                + ["Bình Thạnh", "Gò Vấp", "Tân Bình", "Thủ Đức"],
-                key=f"{key_prefix}_khuvuc",
-            )
-
-        return dict(
-            hang=hang,
-            dong=dong,
-            loai_xe=loai_xe,
-            xuat_xu=xuat_xu,
-            dung_tich_label=dung_tich_label,
-            dung_tich_unknown=dung_tich_unknown,
-            reg_before_1980=reg_before_1980,
-            nam_dang_ky=int(nam_dang_ky),
-            km=km,
-            km_unknown=km_unknown,
-            khu_vuc=khu_vuc,
+        gia_du_doan = predict_price(bundle, feats)
+        gia_fmt = f"{gia_du_doan:,.0f}".replace(",", ".")
+        st.markdown(
+            f"""
+        <div class="price-result">
+            <p class="pr-label">Giá đề xuất cho {vals['hang']} {vals['dong']}</p>
+            <p class="pr-value">{gia_fmt} VNĐ</p>
+            <p class="pr-note">Dự đoán bởi XGBoost dựa trên thông tin bạn nhập.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
         )
 
-    tab_predict, tab_anomaly, tab_batch = st.tabs(
+# ============================================================
+# ADMIN DASHBOARD
+# ============================================================
+elif page == "Admin":
+    st.title("Dashboard Admin — Phát hiện bất thường & Kiểm tra")
+
+    # MẬT KHẨU CỐ ĐỊNH CỦA ADMIN
+    ADMIN_USERNAME = "admin"
+    ADMIN_PASSWORD = "chotot123"
+
+    if "admin_logged_in" not in st.session_state:
+        st.session_state.admin_logged_in = False
+
+    # Giao diện Đăng nhập
+    if not st.session_state.admin_logged_in:
+        st.caption("Vui lòng đăng nhập tài khoản Quản trị viên")
+        with st.form("login_form"):
+            user = st.text_input("Tên đăng nhập", placeholder="admin")
+            pw = st.text_input(
+                "Mật khẩu", type="password", placeholder="••••••••"
+            )
+            login_submitted = st.form_submit_button("Đăng nhập")
+
+        if login_submitted:
+            if user == ADMIN_USERNAME and pw == ADMIN_PASSWORD:
+                st.session_state.admin_logged_in = True
+                st.rerun()
+            else:
+                st.error("⚠️ Tên đăng nhập hoặc mật khẩu không chính xác!")
+        st.stop()
+
+    if not MODEL_OK:
+        st.error(f"Không load được model: {MODEL_ERROR}")
+        st.stop()
+
+    tab_admin_single, tab_admin_batch = st.tabs(
         [
-            "📋 Dự đoán giá",
-            "🕵️ Phát hiện bất thường",
-            "📁 Kiểm tra hàng loạt",
+            "🕵️ Kiểm tra 1 tin đăng bất thường",
+            "📁 Kiểm tra hàng loạt (File CSV/Excel)",
         ]
     )
 
-    # TAB 1: DỰ ĐOÁN GIÁ
-    with tab_predict:
-        vals = _seller_inputs("predict")
-        if st.button("💰 Định giá xe", key="btn_predict"):
-            feats = build_features(
-                bundle, **{k: v for k, v in vals.items() if k != "khu_vuc"}
-            )
-            gia_du_doan = predict_price(bundle, feats)
-            gia_fmt = f"{gia_du_doan:,.0f}".replace(",", ".")
-            st.markdown(
-                f"""
-            <div class="price-result">
-                <p class="pr-label">Giá đề xuất cho {vals['hang']} {vals['dong']}</p>
-                <p class="pr-value">{gia_fmt} VNĐ</p>
-                <p class="pr-note">Dự đoán bởi XGBoost dựa trên thông tin bạn nhập.</p>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
-
-    # TAB 2: PHÁT HIỆN BẤT THƯỜNG
-    with tab_anomaly:
+    # --------------------------------------------------------
+    # TAB 1: PHÁT HIỆN BẤT THƯỜNG TỪNG XE
+    # --------------------------------------------------------
+    with tab_admin_single:
         st.caption(
-            "Nhập thông tin xe + giá bạn định rao, hệ thống so sánh với giá model dự đoán."
+            "Nhập thông tin chi tiết xe và mức giá rao để hệ thống kiểm tra độ bất thường so với giá gợi ý."
         )
-        vals2 = _seller_inputs("anomaly")
+        vals_admin = render_vehicle_input_form("admin_single")
+
         gia_rao_input = st.number_input(
-            "Giá bạn muốn rao bán (VNĐ) *",
+            "Giá rao cần kiểm tra (VNĐ) *",
             min_value=0,
             step=1_000_000,
             value=45_000_000,
-            key="gia_rao_anomaly",
+            key="gia_rao_admin_single",
         )
-        if st.button("🔍 Kiểm tra giá", key="btn_anomaly"):
-            feats2 = build_features(
-                bundle, **{k: v for k, v in vals2.items() if k != "khu_vuc"}
+
+        if st.button("🔍 Kiểm tra độ bất thường", key="btn_check_admin_single"):
+            feats_admin = build_features(
+                bundle,
+                **{k: v for k, v in vals_admin.items() if k != "khu_vuc"},
             )
-            gia_du_doan2 = predict_price(bundle, feats2)
-            nhan, chenh_lech = classify_price(gia_rao_input, gia_du_doan2)
-            gia_fmt2 = f"{gia_du_doan2:,.0f}".replace(",", ".")
+            gia_du_doan_admin = predict_price(bundle, feats_admin)
+            nhan, chenh_lech = classify_price(gia_rao_input, gia_du_doan_admin)
+            gia_fmt_admin = f"{gia_du_doan_admin:,.0f}".replace(",", ".")
+
             if nhan == "Quá đắt":
                 st.error(
-                    f"⚠️ Giá rao **cao hơn khoảng {chenh_lech:.0f}%** so với giá đề xuất ({gia_fmt2} VNĐ) — có thể **quá đắt**."
+                    f"⚠️ Giá rao **cao hơn khoảng {chenh_lech:.0f}%** so với giá đề xuất ({gia_fmt_admin} VNĐ) — **Cờ đỏ (Quá đắt)**."
                 )
             elif nhan == "Quá rẻ":
                 st.warning(
-                    f"🔎 Giá rao **thấp hơn khoảng {abs(chenh_lech):.0f}%** so với giá đề xuất ({gia_fmt2} VNĐ) — có thể **quá rẻ**."
+                    f"🔎 Giá rao **thấp hơn khoảng {abs(chenh_lech):.0f}%** so với giá đề xuất ({gia_fmt_admin} VNĐ) — **Cờ đỏ (Quá rẻ)**."
                 )
             else:
                 st.success(
-                    f"✅ Giá rao **hợp lý**, chênh lệch khoảng {chenh_lech:.0f}% so với giá đề xuất ({gia_fmt2} VNĐ)."
+                    f"✅ Giá rao **hợp lý**, chênh lệch khoảng {chenh_lech:.0f}% so với giá đề xuất ({gia_fmt_admin} VNĐ)."
                 )
 
-    # TAB 3: KIỂM TRA HÀNG LOẠT (SELLER)
-    with tab_batch:
+    # --------------------------------------------------------
+    # TAB 2: KIỂM TRA HÀNG LOẠT BẰNG FILE
+    # --------------------------------------------------------
+    with tab_admin_batch:
         st.caption(
-            "Tải lên nhiều tin đăng cùng lúc để kiểm tra giá — hệ thống tự động đồng bộ từ khóa các cột."
+            "Tải lên file danh sách tin đăng để hệ thống tự động kiểm tra giá dự báo và gắn cờ bất thường."
         )
+
         threshold_pct = (
             st.slider(
                 "Ngưỡng chênh lệch coi là bất thường (%)",
                 5,
                 50,
                 15,
-                key="thr_seller",
+                key="thr_admin",
             )
             / 100
         )
@@ -431,7 +456,7 @@ elif page == "Người bán xe":
         file = st.file_uploader(
             "File CSV/Excel (Tự động nhận diện tên cột tiếng Việt/Anh)",
             type=["csv", "xlsx"],
-            key="upload_seller",
+            key="upload_admin",
         )
 
         if file is not None:
@@ -441,13 +466,14 @@ elif page == "Người bán xe":
                 else pd.read_excel(file)
             )
 
-            # Tự động đồng bộ đổi tên cột
             df = df_raw.rename(columns=COLUMN_MAPPING)
 
             st.write("Dữ liệu gốc đã tải lên:")
             st.dataframe(df_raw, use_container_width=True)
 
-            if st.button("🚀 Chạy dự đoán hàng loạt", key="btn_batch_seller"):
+            if st.button(
+                "🚩 Chạy dự báo & Kiểm tra hàng loạt", key="btn_run_admin_batch"
+            ):
                 required = [
                     "Hang_xe",
                     "Dong_xe",
@@ -492,7 +518,6 @@ elif page == "Người bán xe":
                         )
                         return predict_price(bundle, feats)
 
-                    # Làm sạch cột giá rao
                     df["Gia_rao_clean"] = df["Gia_rao"].apply(clean_price)
                     df["gia_du_doan"] = df.apply(_predict_row, axis=1)
 
@@ -507,159 +532,48 @@ elif page == "Người bán xe":
                     df["nhan_xet"] = results.apply(lambda t: t[0])
                     df["chenh_lech_%"] = results.apply(lambda t: round(t[1], 1))
 
-                    st.write("Kết quả dự đoán:")
-                    st.dataframe(df, use_container_width=True)
+                    flagged = df[df["nhan_xet"] != "Hợp lý"]
+
+                    st.markdown("---")
+                    st.subheader("Kết quả phân tích hàng loạt")
+
+                    st.markdown(
+                        f'<p style="font-size:2.5rem;font-weight:700;color:{ACCENT};margin:0 0 12px;">'
+                        f'{len(flagged)} <span style="font-size:1.1rem;font-weight:400;color:rgb(120,122,132);">'
+                        f'tin đăng bất thường ({len(flagged) / max(len(df), 1) * 100:.1f}% tổng số tin)</span></p>',
+                        unsafe_allow_html=True,
+                    )
+
+                    tab_all, tab_expensive, tab_cheap = st.tabs(
+                        [
+                            "📊 Tất cả kết quả",
+                            "🔴 Cờ đỏ: Quá đắt",
+                            "🟡 Cờ đỏ: Quá rẻ",
+                        ]
+                    )
+                    with tab_all:
+                        st.dataframe(df, use_container_width=True)
+                    with tab_expensive:
+                        st.dataframe(
+                            df[df["nhan_xet"] == "Quá đắt"],
+                            use_container_width=True,
+                        )
+                    with tab_cheap:
+                        st.dataframe(
+                            df[df["nhan_xet"] == "Quá rẻ"],
+                            use_container_width=True,
+                        )
 
                     csv = df.to_csv(index=False).encode("utf-8-sig")
                     st.download_button(
                         "⬇️ Tải kết quả CSV",
                         data=csv,
-                        file_name="ket_qua_du_doan.csv",
+                        file_name="ket_qua_kiem_tra_admin.csv",
                         mime="text/csv",
-                        key="dl_seller",
+                        key="dl_admin_batch",
                     )
 
-# ============================================================
-# ADMIN DASHBOARD
-# ============================================================
-elif page == "Admin":
-    st.title("Dashboard Admin — Cờ đỏ bất thường")
-
-    if "admin_logged_in" not in st.session_state:
-        st.session_state.admin_logged_in = False
-
-    if not st.session_state.admin_logged_in:
-        st.caption("Đăng nhập để xem danh sách tin đăng bất thường")
-        with st.form("login_form"):
-            user = st.text_input("Tên đăng nhập", placeholder="admin_chotot")
-            pw = st.text_input("Mật khẩu", type="password", placeholder="••••••••")
-            login_submitted = st.form_submit_button("Đăng nhập")
-        if login_submitted:
-            if user and pw:
-                st.session_state.admin_logged_in = True
-                st.rerun()
-            else:
-                st.error("Vui lòng nhập tên đăng nhập và mật khẩu.")
-        st.stop()
-
-    if not MODEL_OK:
-        st.error(f"Không load được model: {MODEL_ERROR}")
-        st.stop()
-
-    st.caption(
-        "Tải lên file danh sách tin đăng để hệ thống tự động gắn cờ đỏ/xanh dựa trên model XGBoost."
-    )
-
-    threshold_pct = (
-        st.slider("Ngưỡng chênh lệch coi là bất thường (%)", 5, 50, 15) / 100
-    )
-
-    file = st.file_uploader(
-        "File CSV/Excel (Tự động nhận diện tên cột tiếng Việt/Anh)",
-        type=["csv", "xlsx"],
-    )
-
-    if file is not None:
-        df_raw = (
-            pd.read_csv(file)
-            if file.name.endswith(".csv")
-            else pd.read_excel(file)
-        )
-
-        # Tự động đồng bộ đổi tên cột
-        df = df_raw.rename(columns=COLUMN_MAPPING)
-
-        st.write("Dữ liệu gốc đã tải lên:")
-        st.dataframe(df_raw, use_container_width=True)
-
-        if st.button("🚩 Chạy kiểm tra hàng loạt"):
-            required = [
-                "Hang_xe",
-                "Dong_xe",
-                "Loai_xe",
-                "Xuat_xu",
-                "Dung_tich",
-                "Nam_dang_ky",
-                "Km",
-                "Gia_rao",
-            ]
-            missing = [c for c in required if c not in df.columns]
-
-            if missing:
-                st.error(
-                    f"File thiếu các cột bắt buộc chưa thể nhận diện: {', '.join(missing)}"
-                )
-            else:
-
-                def _predict_row(r):
-                    nam_dk = (
-                        int(r["Nam_dang_ky"])
-                        if pd.notna(r["Nam_dang_ky"])
-                        and str(r["Nam_dang_ky"]).isdigit()
-                        else 2018
-                    )
-                    so_km_val = (
-                        float(r["Km"]) if pd.notna(r["Km"]) else 25000.0
-                    )
-
-                    feats = build_features(
-                        bundle,
-                        hang=r["Hang_xe"],
-                        dong=r["Dong_xe"],
-                        loai_xe=r["Loai_xe"],
-                        xuat_xu=r["Xuat_xu"],
-                        dung_tich_label=str(r["Dung_tich"]),
-                        dung_tich_unknown=pd.isna(r["Dung_tich"]),
-                        reg_before_1980=False,
-                        nam_dang_ky=nam_dk,
-                        km=so_km_val,
-                        km_unknown=pd.isna(r["Km"]),
-                    )
-                    return predict_price(bundle, feats)
-
-                # Làm sạch cột giá rao
-                df["Gia_rao_clean"] = df["Gia_rao"].apply(clean_price)
-                df["gia_du_doan"] = df.apply(_predict_row, axis=1)
-
-                results = df.apply(
-                    lambda r: classify_price(
-                        r["Gia_rao_clean"],
-                        r["gia_du_doan"],
-                        threshold=threshold_pct,
-                    ),
-                    axis=1,
-                )
-                df["nhan_xet"] = results.apply(lambda t: t[0])
-                df["chenh_lech_%"] = results.apply(lambda t: round(t[1], 1))
-
-                flagged = df[df["nhan_xet"] != "Hợp lý"]
-
-                st.markdown(
-                    f'<p style="font-size:3rem;font-weight:700;color:{ACCENT};margin:0 0 12px;">'
-                    f'{len(flagged)} <span style="font-size:1rem;font-weight:400;color:rgb(120,122,132);">'
-                    f'({len(flagged) / max(len(df), 1) * 100:.2f}% tổng tin đăng bất thường)</span></p>',
-                    unsafe_allow_html=True,
-                )
-
-                tab_expensive, tab_cheap = st.tabs(["Quá đắt", "Quá rẻ"])
-                with tab_expensive:
-                    st.dataframe(
-                        df[df["nhan_xet"] == "Quá đắt"],
-                        use_container_width=True,
-                    )
-                with tab_cheap:
-                    st.dataframe(
-                        df[df["nhan_xet"] == "Quá rẻ"], use_container_width=True
-                    )
-
-                csv = df.to_csv(index=False).encode("utf-8-sig")
-                st.download_button(
-                    "⬇️ Tải kết quả CSV",
-                    data=csv,
-                    file_name="ket_qua_kiem_tra.csv",
-                    mime="text/csv",
-                )
-
-    if st.button("Đăng xuất"):
+    st.markdown("---")
+    if st.button("Đăng xuất", key="btn_logout"):
         st.session_state.admin_logged_in = False
         st.rerun()
