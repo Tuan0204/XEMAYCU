@@ -36,84 +36,43 @@ def get_base64_image(image_path: str) -> str:
             return base64.b64encode(img_file.read()).decode()
     return ""
 
-# Thử nạp ảnh bg.png (đặt cùng thư mục với file app.py)
 bg_b64 = get_base64_image("bg.png")
 if bg_b64:
     bg_style = f"url('data:image/png;base64,{bg_b64}') no-repeat center center fixed !important; background-size: cover !important;"
 else:
-    # Dự phòng nếu chưa chép file bg.png vào thư mục
     bg_style = "linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%) !important;"
 
 # ============================================================
 # TỪ ĐIỂN MAPPING TỰ ĐỘNG TÊN CỘT DÙNG CHO BATCH PREDICT
 # ============================================================
 COLUMN_MAPPING = {
-    "Hang_xe": "Hang_xe",
-    "hang_xe": "Hang_xe",
-    "thuong_hieu": "Hang_xe",
-    "Thương hiệu": "Hang_xe",
-    "Hang": "Hang_xe",
-    "Dong_xe": "Dong_xe",
-    "dong_xe": "Dong_xe",
-    "Dòng xe": "Dong_xe",
-    "Dong": "Dong_xe",
-    "Loai_xe": "Loai_xe",
-    "loai_xe": "Loai_xe",
-    "Loại xe": "Loai_xe",
-    "Xuat_xu": "Xuat_xu",
-    "xuat_xu": "Xuat_xu",
-    "Xuất xứ": "Xuat_xu",
-    "Dung_tich": "Dung_tich",
-    "dung_tich": "Dung_tich",
-    "dung_tich_cc": "Dung_tich",
-    "Dung tích xe": "Dung_tich",
-    "Nam_dang_ky": "Nam_dang_ky",
-    "nam_dang_ky": "Nam_dang_ky",
-    "Năm đăng ký": "Nam_dang_ky",
-    "Nam_san_xuat": "Nam_dang_ky",
-    "Km": "Km",
-    "so_km": "Km",
-    "Số Km đã đi": "Km",
-    "So_km": "Km",
-    "Gia_rao": "Gia_rao",
-    "gia_rao": "Gia_rao",
-    "Giá": "Gia_rao",
-    "Gia": "Gia_rao",
+    "Hang_xe": "Hang_xe", "hang_xe": "Hang_xe", "thuong_hieu": "Hang_xe", "Thương hiệu": "Hang_xe", "Hang": "Hang_xe",
+    "Dong_xe": "Dong_xe", "dong_xe": "Dong_xe", "Dòng xe": "Dong_xe", "Dong": "Dong_xe",
+    "Loai_xe": "Loai_xe", "loai_xe": "Loai_xe", "Loại xe": "Loai_xe",
+    "Xuat_xu": "Xuat_xu", "xuat_xu": "Xuat_xu", "Xuất xứ": "Xuat_xu",
+    "Dung_tich": "Dung_tich", "dung_tich": "Dung_tich", "dung_tich_cc": "Dung_tich", "Dung tích xe": "Dung_tich",
+    "Nam_dang_ky": "Nam_dang_ky", "nam_dang_ky": "Nam_dang_ky", "Năm đăng ký": "Nam_dang_ky", "Nam_san_xuat": "Nam_dang_ky",
+    "Km": "Km", "so_km": "Km", "Số Km đã đi": "Km", "So_km": "Km",
+    "Gia_rao": "Gia_rao", "gia_rao": "Gia_rao", "Giá": "Gia_rao", "Gia": "Gia_rao",
 }
 
-
 def clean_price(val):
-    if pd.isna(val):
-        return 0.0
-    if isinstance(val, (int, float)):
-        return float(val)
-    clean_str = (
-        str(val)
-        .replace("đ", "")
-        .replace("Đ", "")
-        .replace(".", "")
-        .replace(",", "")
-        .replace(" ", "")
-        .strip()
-    )
-    try:
-        return float(clean_str)
-    except ValueError:
-        return 0.0
-
+    if pd.isna(val): return 0.0
+    if isinstance(val, (int, float)): return float(val)
+    clean_str = str(val).replace("đ", "").replace("Đ", "").replace(".", "").replace(",", "").replace(" ", "").strip()
+    try: return float(clean_str)
+    except ValueError: return 0.0
 
 # ============================================================
-# CSS GIAO DIỆN & BACKGROUND TECH VECTOR (TRẮNG/XÁM)
+# CSS GIAO DIỆN CỦA TOÀN BỘ APP (GỒM BẢNG DUYỆT TIN KIỂU MẪU)
 # ============================================================
 st.markdown(
     f"""
 <style>
-    /* 1. NỀN TỔNG THỂ DÙNG ẢNH BG VECTOR CÔNG NGHỆ */
     [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
         background: {bg_style}
     }}
     
-    /* 2. SIDEBAR CẢI TIẾN TRẮNG TINH NỔI BẬT */
     section[data-testid="stSidebar"] {{
         width: 320px !important;
         background-color: rgba(255, 255, 255, 0.95) !important;
@@ -123,7 +82,6 @@ st.markdown(
         box-shadow: 4px 0 15px rgba(0,0,0,0.04);
     }}
 
-    /* 3. HERO BANNER CỬA HÀNG / SHOWROOM XE MÁY */
     .hero-banner {{
         background: 
             linear-gradient(135deg, rgba(15, 23, 42, 0.78) 0%, rgba(232, 93, 37, 0.72) 100%), 
@@ -144,7 +102,6 @@ st.markdown(
         align-items: center;
         background: rgba(255, 255, 255, 0.22);
         backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
         color: #ffffff;
         padding: 6px 18px;
         border-radius: 30px;
@@ -170,7 +127,6 @@ st.markdown(
         text-shadow: 0 1px 4px rgba(0,0,0,0.4);
     }}
 
-    /* 4. METRIC CARDS TRẮNG BO GÓC ĐỔ BÓNG NỔI TRÊN NỀN BG */
     div[data-testid="stMetric"] {{
         background-color: #ffffff !important;
         border-radius: 16px !important;
@@ -179,7 +135,6 @@ st.markdown(
         border: 1px solid #e2e8f0 !important;
     }}
 
-    /* 5. KHUNG KẾT QUẢ VÀ CARD NỘI DUNG */
     .price-result {{ 
         border: 1px solid rgba(232,93,37,0.35); 
         background: #ffffff; 
@@ -191,22 +146,37 @@ st.markdown(
     .price-result .pr-value {{ font-size: 2.2rem; font-weight: 800; color: {ACCENT}; margin: 4px 0 8px; }}
     .price-result .pr-note {{ font-size: 13px; color: #64748b; margin: 0; }}
 
-    /* 6. NÚT BẤM & TABS */
-    .stButton > button {{ 
-        background-color: {ACCENT}; 
-        color: white; 
-        border: none; 
-        border-radius: 10px; 
-        font-weight: 600; 
-        padding: 0.6rem 1.2rem;
-        box-shadow: 0 4px 12px rgba(232, 93, 37, 0.25);
-        transition: all 0.2s ease;
+    /* STYLES RIÊNG CHO CARD DUYỆT TIN KIỂU MẪU */
+    .admin-post-card {{
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 18px 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     }}
-    .stButton > button:hover {{ 
-        background-color: #c44a1a; 
-        color: white; 
-        transform: translateY(-1px);
+    .post-header {{ font-size: 1.05rem; color: #334155; margin-bottom: 8px; }}
+    .post-code {{ font-weight: 700; color: #2563eb; }}
+    .post-title {{ font-weight: 700; color: #0f172a; }}
+    
+    .post-price-info {{
+        font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 12px;
+        background: #f8fafc; padding: 8px 14px; border-radius: 8px; display: inline-block;
     }}
+    .price-tag {{ color: #16a34a; font-weight: 700; }}
+    .ai-price-tag {{ color: #0284c7; font-weight: 700; }}
+    
+    .status-safe {{
+        background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;
+        padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;
+    }}
+    .status-warning {{
+        background-color: #ffe4e6; color: #be123c; border: 1px solid #fecdd3;
+        padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;
+    }}
+    
+    /* CUSTOM BUTTONS CHO PERMISSION */
+    .stButton > button {{ border-radius: 10px; font-weight: 600; }}
     div[data-baseweb="tab-highlight"] {{ background-color: {ACCENT} !important; }}
     button[data-baseweb="tab"][aria-selected="true"] {{ color: {ACCENT} !important; font-weight: bold; }}
 </style>
@@ -219,11 +189,9 @@ st.markdown(
 # ============================================================
 MODEL_PATH = Path(__file__).parent / "models" / "xgb_price_model.pkl"
 
-
 @st.cache_resource
 def get_bundle():
     return load_model_bundle(str(MODEL_PATH))
-
 
 try:
     bundle = get_bundle()
@@ -234,53 +202,36 @@ except Exception as e:
     MODEL_OK = False
     MODEL_ERROR = str(e)
 
-
 # ============================================================
 # DATABASE GIẢ LẬP VỚI TRẠNG THÁI KIỂM DUYỆT TIN
 # ============================================================
 if "mock_db" not in st.session_state:
-    np.random.seed(42)
-    users = [
-        "Nguyễn Văn An", "Trần Thị Bích", "Lê Hoàng Nam", "Phạm Minh Tuấn",
-        "Vũ Thị Mai", "Đặng Quốc Bảo", "Bùi Phương Thảo", "Hoàng Anh Dũng",
-        "Đỗ Thu Trang", "Ngô Văn Hùng",
-    ]
-    phones = [f"09{random.randint(10000000, 99999999)}" for _ in range(10)]
     vehicles = [
-        ("Honda", "Wave Alpha", "Xe số", "100 - 150 cc", 18500000, 18000000),
-        ("Honda", "SH 150i", "Tay ga", "100 - 150 cc", 82000000, 85000000),
-        ("Yamaha", "Exciter 150", "Xe tay côn", "100 - 150 cc", 29000000, 31000000),
+        ("Honda", "Air Blade 125", "Xe tay ga", "100 - 150 cc", 40000000, 43987922),
+        ("Honda", "Air Blade 150", "Xe tay ga", "100 - 150 cc", 800000000, 43987922),
+        ("Yamaha", "Exciter 150", "Xe tay côn", "100 - 150 cc", 31000000, 31500000),
+        ("Honda", "SH 150i", "Xe tay ga", "100 - 150 cc", 82000000, 85000000),
+        ("Piaggio", "Vespa LX", "Xe tay ga", "100 - 150 cc", 12000000, 25000000),
         ("Ducati", "Monster 821", "Tay côn / PKL", "Trên 175 cc", 220000000, 215000000),
-        ("Piaggio", "Vespa LX", "Tay ga", "100 - 150 cc", 12000000, 25000000),
-        ("Honda", "Vision", "Tay ga", "100 - 150 cc", 55000000, 32000000),
-        ("Detech", "67", "Xe số", "50 - 100 cc", 14000000, 13500000),
-        ("Yamaha", "Sirius", "Xe số", "100 - 150 cc", 11500000, 12000000),
-        ("Kawasaki", "Z900", "Tay côn / PKL", "Trên 175 cc", 195000000, 190000000),
-        ("Suzuki", "Satria 150", "Xe tay côn", "100 - 150 cc", 38000000, 37500000),
     ]
     
     data = []
-    for i in range(10):
-        u, p, v = users[i], phones[i], vehicles[i]
+    for i, v in enumerate(vehicles):
         gia_rao, gia_goi_y = v[4], v[5]
         nhan, chenh = classify_price(gia_rao, gia_goi_y, threshold=0.15)
         
         data.append({
-            "Mã tin": f"TIN-20260801-{100+i}",
-            "Người đăng": u,
-            "Số điện thoại": p,
-            "Hãng xe": v[0],
-            "Dòng xe": v[1],
-            "Loại xe": v[2],
-            "Dung tích": v[3],
-            "Giá rao (VNĐ)": gia_rao,
-            "Giá đề xuất (VNĐ)": gia_goi_y,
-            "Chênh lệch": f"{chenh:+.1f}%",
-            "Đánh giá giá": "🔴 Quá đắt" if nhan == "Quá đắt" else ("🟡 Quá rẻ" if nhan == "Quá rẻ" else "🟢 Hợp lý"),
-            "Trạng thái duyệt": "⏳ Chờ duyệt"
+            "id": f"POST_{6018+i}",
+            "hang_xe": v[0],
+            "dong_xe": v[1],
+            "loai_xe": v[2],
+            "gia_rao": gia_rao,
+            "gia_goi_y": gia_goi_y,
+            "chenh_lech": chenh,
+            "nhan_xet": nhan,
+            "trang_thai": "Chờ duyệt"
         })
     st.session_state.mock_db = pd.DataFrame(data)
-
 
 # ============================================================
 # FORM NHẬP THÔNG TIN XE
@@ -294,7 +245,6 @@ def render_vehicle_input_form(key_prefix: str):
     )
     
     seg_key = f"{key_prefix}_{segment.replace(' ', '_')}"
-    
     hang_options = get_hang_options_for_segment(bundle, segment, OPTS)
     all_dt_labels = OPTS["dung_tich_labels"]
     
@@ -381,21 +331,11 @@ def render_vehicle_input_form(key_prefix: str):
         st.success(f"✅ Xác thực hợp lệ: **{hang} {dong}** ({dung_tich_label})")
 
     return dict(
-        segment=segment,
-        hang=hang,
-        dong=dong,
-        loai_xe=loai_xe,
-        xuat_xu=xuat_xu,
-        dung_tich_label=dung_tich_label,
-        dung_tich_unknown=dung_tich_unknown,
-        reg_before_1980=reg_before_1980,
-        nam_dang_ky=int(nam_dang_ky),
-        km=km,
-        km_unknown=km_unknown,
-        khu_vuc=khu_vuc,
-        is_valid=is_valid,
+        segment=segment, hang=hang, dong=dong, loai_xe=loai_xe, xuat_xu=xuat_xu,
+        dung_tich_label=dung_tich_label, dung_tich_unknown=dung_tich_unknown,
+        reg_before_1980=reg_before_1980, nam_dang_ky=int(nam_dang_ky),
+        km=km, km_unknown=km_unknown, khu_vuc=khu_vuc, is_valid=is_valid,
     )
-
 
 # ============================================================
 # SIDEBAR
@@ -404,13 +344,7 @@ with st.sidebar:
     st.markdown("## 🏍️ Motorbike Price")
     page = st.radio(
         "Điều hướng",
-        [
-            "Trang chủ",
-            "Business problem",
-            "Phân công nhóm",
-            "Người bán xe",
-            "Admin",
-        ],
+        ["Trang chủ", "Business problem", "Phân công nhóm", "Người bán xe", "Admin"],
         label_visibility="collapsed",
     )
     st.markdown("---")
@@ -462,25 +396,17 @@ elif page == "Business problem":
 
     st.markdown("**Nhu cầu các bên liên quan**")
     with st.expander("🧑 Người bán"):
-        st.write(
-            'Cần "Price Engine" gợi ý giá cạnh tranh để bán nhanh, không bị thiệt ("hớ").'
-        )
+        st.write('Cần "Price Engine" gợi ý giá cạnh tranh để bán nhanh, không bị thiệt ("hớ").')
     with st.expander("🛡️ Admin / Nền tảng"):
-        st.write(
-            "Cần bộ lọc tự động phân loại Cờ xanh (hợp lệ) / Cờ đỏ (bất thường) để giảm tải kiểm duyệt thủ công."
-        )
-
-    st.markdown("**Dữ liệu**")
-    with st.expander("data_motobikes.xlsx"):
-        st.write(
-            "7,208 tin đăng xe máy cũ tại Tp.HCM, 18 cột (dữ liệu bảo mật, chỉ dùng học tập/nghiên cứu)."
-        )
+        st.write("Cần bộ lọc tự động phân loại Cờ xanh (hợp lệ) / Cờ đỏ (bất thường) để giảm tải kiểm duyệt thủ công.")
 
 # ============================================================
-# PHÂN CÔNG NHÓM
+# PHÂN CÔNG NHÓM (CÓ BỔ SUNG CỘT EMAIL)
 # ============================================================
 elif page == "Phân công nhóm":
-    st.title("Phân công nhóm - Nhóm 7")
+    st.title("👥 Phân công nhiệm vụ nhóm - Nhóm 7")
+    st.caption("Thông tin liên hệ và chi tiết công việc của các thành viên")
+    
     df_team = pd.DataFrame(
         {
             "Thành viên": [
@@ -492,6 +418,11 @@ elif page == "Phân công nhóm":
                 "Trưởng nhóm",
                 "Thành viên",
                 "Thành viên",
+            ],
+            "Email": [
+                "thuyhang0911@gmail.com",
+                "lengoctuan04lkk@gmail.com",
+                "nguyen.nhatminhthu19@gmail.com",
             ],
             "Việc phụ trách": [
                 "Bổ sung phân nhóm & test lại phần EDA, Bài toán 2 làm PySpark, Lên ý tưởng design GUI",
@@ -520,19 +451,12 @@ elif page == "Người bán xe":
 
     vals = render_vehicle_input_form("seller_main")
 
-    # Tính toán giá AI gợi ý
-    feats = build_features(
-        bundle, **{k: v for k, v in vals.items() if k not in ["segment", "khu_vuc", "is_valid"]}
-    )
+    feats = build_features(bundle, **{k: v for k, v in vals.items() if k not in ["segment", "khu_vuc", "is_valid"]})
     gia_goi_y = predict_price(bundle, feats)
     gia_fmt_goi_y = f"{gia_goi_y:,.0f}".replace(",", ".")
 
-    # --------------------------------------------------------
-    # TAB 1: NHẬP GIÁ MONG MUỐN & ĐÁNH GIÁ (TRẢI ĐỀU FULL-WIDTH 100%)
-    # --------------------------------------------------------
     with tab_seller_eval:
         st.subheader("Đánh giá mức giá bán mong muốn của bạn")
-        
         col_p1, col_p2 = st.columns(2)
         with col_p1:
             st.markdown(f"""
@@ -546,11 +470,8 @@ elif page == "Người bán xe":
         with col_p2:
             user_target_price = st.number_input(
                 "Nhập mức giá bạn MONG MUỐN BÁN (VNĐ) *",
-                min_value=1_000_000,
-                max_value=1_000_000_000,
-                value=int(np.round(gia_goi_y, -5)),
-                step=500_000,
-                key="user_target_price"
+                min_value=1_000_000, max_value=1_000_000_000,
+                value=int(np.round(gia_goi_y, -5)), step=500_000, key="user_target_price"
             )
             btn_eval = st.button("🚀 Chạy mô hình đánh giá mức giá", key="btn_eval_user_price")
 
@@ -584,13 +505,8 @@ elif page == "Người bán xe":
                         f"* **Lời khuyên:** Mức giá có tính cạnh tranh cao, dễ dàng được duyệt và thanh khoản tốt!"
                     )
 
-    # --------------------------------------------------------
-    # TAB 2: TỰ ĐỘNG LẤY THÔNG TIN ĐỂ ĐĂNG TIN
-    # --------------------------------------------------------
     with tab_seller_post:
         st.subheader("📋 Thông tin tổng hợp & Bài đăng mẫu")
-        st.caption("Sao chép thông tin bên dưới để đăng bài nhanh chóng lên Chợ Tốt!")
-
         tieu_de_mau = f"Cần bán xe {vals['hang']} {vals['dong']} {vals['nam_dang_ky']} - Màu chuẩn đẹp"
         target_fmt = f"{user_target_price:,.0f}".replace(",", ".")
         km_fmt = f"{vals['km']:,}".replace(",", ".")
@@ -606,13 +522,12 @@ Liên hệ trực tiếp để xem xe và chạy thử!"""
 
         st.text_input("📌 Tiêu đề tin đăng mẫu:", value=tieu_de_mau)
         st.text_area("📄 Nội dung mô tả chi tiết mẫu:", value=mo_ta_mau, height=180)
-        st.success("💡 Tip: Bạn có thể copy 2 đoạn thông tin trên dán trực tiếp vào trang đăng tin Chợ Tốt!")
 
 # ============================================================
-# ADMIN DASHBOARD
+# ADMIN DASHBOARD (CHỈNH SỬA GIAO DIỆN DUYỆT TIN THEO ẢNH MẪU)
 # ============================================================
 elif page == "Admin":
-    st.title("Dashboard Admin — Quản trị & Kiểm duyệt tin đăng")
+    st.title("🛠️ QUẢN TRỊ HỆ THỐNG — KIỂM DUYỆT TIN ĐĂNG")
 
     ADMIN_USERNAME = "admin"
     ADMIN_PASSWORD = "chotot123"
@@ -637,58 +552,91 @@ elif page == "Admin":
 
     tab_overview, tab_admin_single, tab_admin_batch = st.tabs(
         [
-            "📊 Overview & Duyệt tin đăng",
+            "📋 Danh sách & Phê duyệt tin đăng",
             "🕵️ Kiểm tra 1 tin đăng lẻ",
             "📁 Kiểm tra hàng loạt (File CSV/Excel)",
         ]
     )
 
     # --------------------------------------------------------
-    # TAB 1: OVERVIEW & THÊM TÍNH NĂNG DUYỆT TIN
+    # TAB 1: CARD DUYỆT TIN KIỂU MẪU (GIỐNG HỆT HÌNH ẢNH MẪU)
     # --------------------------------------------------------
     with tab_overview:
-        st.subheader("Báo cáo tình hình & Phê duyệt tin đăng mới")
-        
         df_db = st.session_state.mock_db
         
-        total_tin = len(df_db)
-        tin_hop_le = len(df_db[df_db["Đánh giá giá"] == "🟢 Hợp lý"])
-        tin_bat_thuong = total_tin - tin_hop_le
+        # Thống kê nhanh
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Tổng tin đăng", f"{len(df_db)} tin")
+        m2.metric("Chờ duyệt", f"{len(df_db[df_db['trang_thai'] == 'Chờ duyệt'])} tin")
+        m3.metric("Đã xử lý", f"{len(df_db[df_db['trang_thai'] != 'Chờ duyệt'])} tin")
         
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Tổng tin mới đăng", f"{total_tin} tin")
-        m2.metric("Tin hợp lệ (Cờ xanh)", f"{tin_hop_le}")
-        m3.metric("Tin bất thường (Cờ đỏ)", f"{tin_bat_thuong}")
-        m4.metric("Đã phê duyệt", f"{len(df_db[df_db['Trạng thái duyệt'] == '✅ Đã duyệt'])} tin")
-
-        st.markdown("---")
-        st.subheader("🛡️ Khu vực duyệt tin dành cho Admin")
-        st.caption("Admin có thể xem thông tin và trực tiếp bấm **Duyệt tin** hoặc **Từ chối tin** bên dưới.")
-
-        st.dataframe(df_db, use_container_width=True)
-
-        st.markdown("#### ⚡ Xử lý kiểm duyệt tin lẻ:")
-        c_sel, c_act1, c_act2 = st.columns([2, 1, 1])
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        with c_sel:
-            selected_tin = st.selectbox("Chọn Mã tin cần duyệt:", df_db["Mã tin"].tolist())
-        
-        with c_act1:
-            st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-            if st.button("✅ Duyệt cho đăng tin", key="btn_approve"):
-                st.session_state.mock_db.loc[st.session_state.mock_db["Mã tin"] == selected_tin, "Trạng thái duyệt"] = "✅ Đã duyệt"
-                st.success(f"Đã duyệt cho phép đăng tin: **{selected_tin}**!")
-                st.rerun()
-                
-        with c_act2:
-            st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-            if st.button("❌ Từ chối đăng tin", key="btn_reject"):
-                st.session_state.mock_db.loc[st.session_state.mock_db["Mã tin"] == selected_tin, "Trạng thái duyệt"] = "❌ Từ chối"
-                st.error(f"Đã từ chối tin đăng: **{selected_tin}**!")
-                st.rerun()
+        # Lặp qua từng tin để hiển thị Card theo kiểu hình mẫu
+        for idx, row in df_db.iterrows():
+            post_id = row["id"]
+            hang_dong = f"{row['hang_xe']} {row['dong_xe']}"
+            gia_rao_fmt = f"{row['gia_rao']:,.0f}".replace(",", ".")
+            gia_ai_fmt = f"{row['gia_goi_y']:,.0f}".replace(",", ".")
+            chenh = row["chenh_lech"]
+            nhan = row["nhan_xet"]
+            status = row["trang_thai"]
+
+            # Bọc khung Card
+            st.markdown(f"""
+            <div class="admin-post-card">
+                <div class="post-header">
+                    <span class="post-code">Mã tin: {post_id}</span> | <span class="post-title">Xe: {hang_dong}</span>
+                </div>
+                <div class="post-price-info">
+                    💵 <b>Giá đăng:</b> <span class="price-tag">{gia_rao_fmt} VNĐ</span> | 
+                    🤖 <b>AI Định giá:</b> <span class="ai-price-tag">{gia_ai_fmt} VNĐ</span> 
+                    (Lệch: <b>{chenh:+.1f}%</b>)
+                </div>
+            """, unsafe_allow_html=True)
+
+            col_status, col_btn1, col_btn2 = st.columns([3, 1, 1])
+
+            with col_status:
+                if nhan == "Hợp lý":
+                    st.markdown("""
+                    <div class="status-safe">
+                        🟢 <b>Tin đăng an toàn.</b> Không phát hiện cờ vi phạm.
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif nhan == "Quá đắt":
+                    st.markdown(f"""
+                    <div class="status-warning">
+                        🔴 <b>CẢNH BÁO VI PHẠM:</b> Giá cao bất thường (Khả năng xe độ/sưu tầm hoặc kê giá)
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="status-warning">
+                        🟡 <b>CẢNH BÁO VI PHẠM:</b> Giá thấp bất thường (Có thể bị hớ hoặc lừa đảo)
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            with col_btn1:
+                # Nút Cho phép đăng (Cập nhật trạng thái)
+                is_approved = (status == "Đã duyệt")
+                if st.button("✅ Cho phép đăng", key=f"approve_{post_id}", disabled=is_approved, use_container_width=True):
+                    st.session_state.mock_db.loc[st.session_state.mock_db["id"] == post_id, "trang_thai"] = "Đã duyệt"
+                    st.success(f"Đã duyệt tin {post_id}!")
+                    st.rerun()
+
+            with col_btn2:
+                # Nút Từ chối tin (Cập nhật trạng thái)
+                is_rejected = (status == "Đã từ chối")
+                if st.button("❌ Từ chối tin", key=f"reject_{post_id}", disabled=is_rejected, use_container_width=True):
+                    st.session_state.mock_db.loc[st.session_state.mock_db["id"] == post_id, "trang_thai"] = "Đã từ chối"
+                    st.error(f"Đã từ chối tin {post_id}!")
+                    st.rerun()
+
+            st.markdown("</div>", unsafe_allow_html=True) # Đóng div card
 
     # --------------------------------------------------------
-    # TAB 2: PHÁT HIỆN BẤT THƯỜNG TỪNG XE
+    # TAB 2: KIỂM TRA TỈNH LẺ
     # --------------------------------------------------------
     with tab_admin_single:
         st.caption("Nhập thông tin chi tiết xe và mức giá rao để hệ thống kiểm tra độ bất thường.")
@@ -696,10 +644,7 @@ elif page == "Admin":
 
         gia_rao_input = st.number_input(
             "Giá rao cần kiểm tra (VNĐ) *",
-            min_value=0,
-            step=1_000_000,
-            value=45_000_000,
-            key="gia_rao_admin_single",
+            min_value=0, step=1_000_000, value=45_000_000, key="gia_rao_admin_single",
         )
 
         if st.button("🔍 Kiểm tra độ bất thường", key="btn_check_admin_single"):
@@ -707,8 +652,7 @@ elif page == "Admin":
                 st.error("⚠️ Vui lòng điều chỉnh lại thông tin trước khi kiểm tra!")
             else:
                 feats_admin = build_features(
-                    bundle,
-                    **{k: v for k, v in vals_admin.items() if k not in ["segment", "khu_vuc", "is_valid"]},
+                    bundle, **{k: v for k, v in vals_admin.items() if k not in ["segment", "khu_vuc", "is_valid"]}
                 )
                 gia_du_doan_admin = predict_price(bundle, feats_admin)
                 nhan, chenh_lech = classify_price(gia_rao_input, gia_du_doan_admin)
@@ -722,20 +666,12 @@ elif page == "Admin":
                     st.success(f"✅ Giá rao **hợp lý**, chênh lệch {chenh_lech:.0f}% so với giá đề xuất ({gia_fmt_admin} VNĐ).")
 
     # --------------------------------------------------------
-    # TAB 3: KIỂM TRA HÀNG LOẠT FILE CSV/EXCEL
+    # TAB 3: BATCH FILE CSV/EXCEL
     # --------------------------------------------------------
     with tab_admin_batch:
         st.caption("Tải lên file danh sách tin đăng để tự động kiểm tra giá và gắn cờ bất thường.")
-
-        threshold_pct = (
-            st.slider("Ngưỡng chênh lệch coi là bất thường (%)", 5, 50, 15, key="thr_admin") / 100
-        )
-
-        file = st.file_uploader(
-            "File CSV/Excel (Tự động nhận diện tên cột tiếng Việt/Anh)",
-            type=["csv", "xlsx"],
-            key="upload_admin",
-        )
+        threshold_pct = st.slider("Ngưỡng chênh lệch coi là bất thường (%)", 5, 50, 15, key="thr_admin") / 100
+        file = st.file_uploader("File CSV/Excel (Tự động nhận diện tên cột tiếng Việt/Anh)", type=["csv", "xlsx"], key="upload_admin")
 
         if file is not None:
             df_raw = pd.read_csv(file) if file.name.endswith(".csv") else pd.read_excel(file)
@@ -755,27 +691,16 @@ elif page == "Admin":
                         so_km_val = float(r["Km"]) if pd.notna(r["Km"]) else 25000.0
 
                         feats = build_features(
-                            bundle,
-                            hang=r["Hang_xe"],
-                            dong=r["Dong_xe"],
-                            loai_xe=r["Loai_xe"],
-                            xuat_xu=r["Xuat_xu"],
-                            dung_tich_label=str(r["Dung_tich"]),
-                            dung_tich_unknown=pd.isna(r["Dung_tich"]),
-                            reg_before_1980=False,
-                            nam_dang_ky=nam_dk,
-                            km=so_km_val,
-                            km_unknown=pd.isna(r["Km"]),
+                            bundle, hang=r["Hang_xe"], dong=r["Dong_xe"], loai_xe=r["Loai_xe"], xuat_xu=r["Xuat_xu"],
+                            dung_tich_label=str(r["Dung_tich"]), dung_tich_unknown=pd.isna(r["Dung_tich"]),
+                            reg_before_1980=False, nam_dang_ky=nam_dk, km=so_km_val, km_unknown=pd.isna(r["Km"]),
                         )
                         return predict_price(bundle, feats)
 
                     df["Gia_rao_clean"] = df["Gia_rao"].apply(clean_price)
                     df["gia_du_doan"] = df.apply(_predict_row, axis=1)
 
-                    results = df.apply(
-                        lambda r: classify_price(r["Gia_rao_clean"], r["gia_du_doan"], threshold=threshold_pct),
-                        axis=1,
-                    )
+                    results = df.apply(lambda r: classify_price(r["Gia_rao_clean"], r["gia_du_doan"], threshold=threshold_pct), axis=1)
                     df["nhan_xet"] = results.apply(lambda t: t[0])
                     df["chenh_lech_%"] = results.apply(lambda t: round(t[1], 1))
 
